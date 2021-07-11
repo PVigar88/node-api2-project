@@ -1,8 +1,6 @@
 // implement your posts router here
 
 const express = require("express");
-const dogModel = require("../../../node-api1-guided/api/dog-model.js");
-
 const Post = require("./posts-model.js");
 
 const router = express.Router();
@@ -49,7 +47,9 @@ router.post("/", (req, res) => {
   } else {
     Post.insert(req.body)
       .then((post) => {
-        res.status(201).json(post);
+        Post.findById(post.id).then((post) => {
+          res.status(201).json(post);
+        });
       })
       .catch((err) => {
         console.log(err);
@@ -69,13 +69,16 @@ router.put("/:id", (req, res) => {
   } else {
     Post.update(req.params.id, req.body)
       .then((post) => {
-        if (post > 0) {
-          res.status(200).json(post);
+        if (post) {
+          return Post.findById(req.params.id);
         } else {
           res.status(404).json({
             message: "The post with the specified ID does not exist",
           });
         }
+      })
+      .then((post) => {
+        res.status(200).json(post);
       })
       .catch((err) => {
         console.log(err);
@@ -87,29 +90,49 @@ router.put("/:id", (req, res) => {
 });
 
 router.delete("/:id", (req, res) => {
-  Post.remove(req.params.id)
-    .then((count) => {
-      if (count > 0) {
-        res.status(200).json({ message: "The post has been removed" });
-      } else {
-        res.status(404).json({ message: "The adopter could not be found" });
-      }
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(500).json({ message: "The post could not be removed" });
-    });
+  Post.findById(req.params.id).then((post) => {
+    if (post) {
+      Post.remove(req.params.id)
+        .then((count) => {
+          if (count) {
+            res.status(200).json(post);
+          } else {
+            res.status(404).json({
+              message: "The post with the specified ID does not exist",
+            });
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+          res.status(500).json({ message: "The post could not be removed" });
+        });
+    } else {
+      res
+        .status(404)
+        .json({ message: "The post with the specified ID does not exist" });
+    }
+  });
 });
 
 router.get("/:id/comments", (req, res) => {
-  Post.findPostComments(req.params.id)
-    .then((comments) => {
-      res.status(200).json(comments);
-    })
-    .catch((err) => {
-      console.log(err);
-      res
-        .status(500)
-        .json({ message: "The comments information could not be retrieved" });
-    });
+  Post.findById(req.params.id).then((post) => {
+    if (post) {
+      Post.findPostComments(req.params.id)
+        .then((comments) => {
+          res.status(200).json(comments);
+        })
+        .catch((err) => {
+          console.log(err);
+          res.status(500).json({
+            message: "The comments information could not be retrieved",
+          });
+        });
+    } else {
+      res.status(404).json({
+        message: "The post with the specified ID does not exist",
+      });
+    }
+  });
 });
+
+module.exports = router;
