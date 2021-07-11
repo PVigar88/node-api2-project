@@ -61,20 +61,55 @@ router.post("/", (req, res) => {
 });
 
 router.put("/:id", (req, res) => {
-  Post.update(req.params.id, req.body)
-    .then((post) => {
-      if (post) {
-        res.status(200).json(post);
-      } else {
-        res.status(404).json({
-          message: "The post with the specified ID does not exist",
+  const revisePost = req.body;
+  if (!revisePost.title || !revisePost.contents) {
+    res
+      .status(400)
+      .json({ message: "Please provide title and contents for the post" });
+  } else {
+    Post.update(req.params.id, req.body)
+      .then((post) => {
+        if (post > 0) {
+          res.status(200).json(post);
+        } else {
+          res.status(404).json({
+            message: "The post with the specified ID does not exist",
+          });
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(500).json({
+          message: "The post information could not be modified",
         });
+      });
+  }
+});
+
+router.delete("/:id", (req, res) => {
+  Post.remove(req.params.id)
+    .then((count) => {
+      if (count > 0) {
+        res.status(200).json({ message: "The post has been removed" });
+      } else {
+        res.status(404).json({ message: "The adopter could not be found" });
       }
     })
     .catch((err) => {
       console.log(err);
-      res.status(500).json({
-        message: "The post information could not be modified",
-      });
+      res.status(500).json({ message: "The post could not be removed" });
+    });
+});
+
+router.get("/:id/comments", (req, res) => {
+  Post.findPostComments(req.params.id)
+    .then((comments) => {
+      res.status(200).json(comments);
+    })
+    .catch((err) => {
+      console.log(err);
+      res
+        .status(500)
+        .json({ message: "The comments information could not be retrieved" });
     });
 });
